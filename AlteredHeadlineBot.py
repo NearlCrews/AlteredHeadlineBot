@@ -24,7 +24,7 @@ leave_post_comment = config['alteredheadlinebot']['leave_post_comment']
 leave_mod_notice = config['alteredheadlinebot']['leave_mod_notice']
 
 # Regex list of domains to ignore.
-drop_urls = re.compile('(?:.*bloomberg\.com.*|.*reddit\.com.*|.*redd\.it.*|.*imgur\.com.*|.*youtube\.com.*|.*wikipedia\.org.*|.*twitter\.com.*|.*youtu\.be.*|.*facebook\.com.*)', re.IGNORECASE)
+drop_urls = re.compile('(?:.*bloomberg\.com.*|.*reddit\.com.*|.*redd\.it.*|.*imgur\.com.*|.*youtube\.com.*|.*wikipedia\.org.*|.*twitter\.com.*|.*youtu\.be.*|.*facebook\.com.*|.*michigan\.gov.*)', re.IGNORECASE)
 
 # Regex for URL validity.
 valid_url = re.compile('(?:^http.*)', re.IGNORECASE)
@@ -93,7 +93,7 @@ while True:
 
       # Find the real title from the actual HTML.
       headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'}
-      real_url_request = requests.get(post_url, headers=headers)
+      real_url_request = requests.get(post_url, headers=headers, timeout=5)
       html_content = real_url_request.text
       soup = BeautifulSoup(html_content, 'html.parser')
       if type(soup.title) == type(None):
@@ -107,12 +107,12 @@ while True:
       similarity_object = difflib.SequenceMatcher(None, post_title.lower(), url_title.lower())
       similarity = round(similarity_object.ratio()*100)
       # DEBUG
-      print(f'Username: {username} \nStripped URL: {stripped_url} \nPost Title: {post_title} \nActual Title: {url_title} \nSimilarity: {similarity} \n' )
+      print(f'Username: {username} \nStripped URL: {stripped_url} \nPost Title: {post_title} \nActual Title: {url_title} \nSimilarity: {similarity} \n')
       if (similarity >= score_threshold):
         continue
 
       # Send an alert if the title differs significantly.
-      if similarity <= score_threshold and leave_mod_notice:
+      if similarity <= score_threshold and leave_mod_notice == 'True':
         n_link = '[Link to post for review.]({})\n\n'.format(submission.permalink)
         n_posted = '**Posted Title:** {}\n\n'.format(post_title)
         n_actual = '**Actual Title:** {}\n\n'.format(url_title)
@@ -122,7 +122,7 @@ while True:
         reddit.subreddit(reddit_target_subreddit).message('Potentially Altered Headline', notification)
 
       # Leave a comment in the thread.
-      if similarity <= score_threshold and leave_post_comment:
+      if similarity <= score_threshold and leave_post_comment == 'True':
         r_message = 'Hello u/{}!\n\n The title of your post differs from the actual article title and has been flagged for review. Please review [Rule #6](https://www.reddit.com/r/Michigan/wiki/index#wiki_rules) in the r/Michigan subreddit rules. If this is an actual rule violation, you can always delete the submission and resubmit with the correct headline. Otherwise, this will likely be removed by the moderators. Please note that some websites change their article titles and this may be a false-positive. In that case, no further action is required. Further details: \n\n'.format(username)
         n_posted = '**Posted Title:** {}\n\n'.format(post_title)
         n_actual = '**Actual Title:** {}\n\n'.format(url_title)
