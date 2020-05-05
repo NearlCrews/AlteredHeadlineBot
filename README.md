@@ -11,9 +11,9 @@ This simple Reddit PRAW bot is designed for a specific purpose:
 Be gentle. I've never written anything in Python and I'm sure there are more efficient ways of doing everything. This was a "COVID-19 I'm bored" learning project. Either way, it seems to work as expected and we're receiving actionable information.
 
 # Installation
-I did this in Ubuntu 19.10 and used APT to install the required modules:
+Install the required modules:
 ```
-sudo apt install python-configparser python3-bs4 python3-furl python3-praw
+pip3 install --upgrade configparser bs4 furl praw
 ```
 
 You want to plug the correct values into `settings.ini`. They're fairly simple:
