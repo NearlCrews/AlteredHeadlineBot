@@ -22,6 +22,7 @@ score_threshold = int(config['alteredheadlinebot']['score_threshold'])
 bot_owner = config['alteredheadlinebot']['bot_owner']
 leave_post_comment = config['alteredheadlinebot']['leave_post_comment']
 leave_mod_notice = config['alteredheadlinebot']['leave_mod_notice']
+link_to_rule = config['alteredheadlinebot']['link_to_rule']
 
 # Regex list of domains to ignore.
 drop_urls = re.compile('(?:.*bloomberg\.com.*|.*reddit\.com.*|.*redd\.it.*|.*imgur\.com.*|.*youtube\.com.*|.*wikipedia\.org.*|.*twitter\.com.*|.*youtu\.be.*|.*facebook\.com.*|.*michigan\.gov.*)', re.IGNORECASE)
@@ -32,16 +33,25 @@ valid_url = re.compile('(?:^http.*)', re.IGNORECASE)
 # Create the tracking database.
 conn = sqlite3.connect('PostHistory.db')
 c = conn.cursor()
-conn.execute('''CREATE TABLE IF NOT EXISTS ALTEREDHEADLINE
-        (ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        EPOCH INTEGER,
-        POSTID TEXT,
-        USERNAME TEXT,
-        POSTTITLE TEXT,
-        POSTURL TEXT,
-        STRIPPEDURL TEXT,
-        URLTITLE TEXT,
-        REDDITURL TEXT);''')
+# id = auto-incrementing value.
+# epoch = timestamp.
+# postid = the internal Reddit post ID.
+# username = the username of the poster.
+# posttitle = the title given to the post by the user.
+# posturl = the URL posted by the user.
+# strippedurl = the posturl minus any variables at the end, e.g. ?FBID=12345.
+# urltitle = the website's title of the article. Please not that they sometimes get changed by the editor.
+# redditurl = the link to the post on Reddit.
+conn.execute('''CREATE TABLE IF NOT EXISTS alteredheadlinebot
+        (id INTEGER PRIMARY KEY AUTOINCREMENT,
+        epoch INTEGER,
+        postid TEXT,
+        username TEXT,
+        posttitle TEXT,
+        posturl TEXT,
+        strippedurl TEXT,
+        urltitle TEXT,
+        redditurl TEXT);''')
 
 # Create the Reddit object.
 reddit = praw.Reddit(
@@ -49,7 +59,7 @@ reddit = praw.Reddit(
     password=reddit_pass,
     client_id=reddit_client_id,
     client_secret=reddit_client_secret,
-    user_agent='AlteredHeadlineBot by u/{}'.format(bot_owner)
+    user_agent='AlteredHeadlineBot managed by u/{}'.format(bot_owner)
 )
 
 # Start the streaming loop for new submissions.
@@ -62,7 +72,7 @@ while True:
         continue
 
       # Check to see if we've already checked this one.
-      c.execute("SELECT id FROM alteredheadline WHERE postid = ?", (post_id,))
+      c.execute("SELECT id FROM alteredheadlinebot WHERE postid = ?", (post_id,))
       query_result = c.fetchall()
       if len(query_result) != 0:
         continue
@@ -123,7 +133,7 @@ while True:
 
       # Leave a comment in the thread.
       if similarity <= score_threshold and leave_post_comment == 'True':
-        r_message = 'Hello u/{}!\n\n The title of your post differs from the actual article title and has been flagged for review. Please review [Rule #6](https://www.reddit.com/r/Michigan/wiki/index#wiki_rules) in the r/Michigan subreddit rules. If this is an actual rule violation, you can always delete the submission and resubmit with the correct headline. Otherwise, this will likely be removed by the moderators. Please note that some websites change their article titles and this may be a false-positive. In that case, no further action is required. Further details: \n\n'.format(username)
+        r_message = 'Hello u/{}!\n\n The title of your post differs from the actual article title and has been flagged for review. Please review {} in the r/{} subreddit rules. If this is an actual rule violation, you can always delete the submission and resubmit with the correct headline. Otherwise, this will likely be removed by the moderators. Please note that some websites change their article titles and this may be a false-positive. In that case, no further action is required. Further details: \n\n'.format(username, link_to_rule, reddit_target_subreddit)
         n_posted = '**Posted Title:** {}\n\n'.format(post_title)
         n_actual = '**Actual Title:** {}\n\n'.format(url_title)
         n_similarity = '**Similarity:** {}%\n\n'.format(similarity)
@@ -135,7 +145,7 @@ while True:
 
       # Insert into the database.
       epoch = time.time()
-      c.execute("INSERT INTO alteredheadline (epoch, postid, username, posttitle, posturl, strippedurl, urltitle, redditurl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (int(epoch), str(post_id), str(username), str(post_title), str(post_url), str(stripped_url), str(url_title), str(submission.permalink)))
+      c.execute("INSERT INTO alteredheadlinebot (epoch, postid, username, posttitle, posturl, strippedurl, urltitle, redditurl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (int(epoch), str(post_id), str(username), str(post_title), str(post_url), str(stripped_url), str(url_title), str(submission.permalink)))
       conn.commit()
     except:
       continue
