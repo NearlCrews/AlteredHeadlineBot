@@ -13,7 +13,7 @@ Be gentle. I've never written anything in Python and I'm sure there are more eff
 # Installation
 Install the required modules:
 ```
-pip3 install --upgrade configparser bs4 furl praw
+pip3 install --upgrade configparser bs4 praw
 ```
 
 You want to plug the correct values into `settings.ini`. They're fairly simple:
